@@ -1,6 +1,6 @@
 contract FileswarmManager {
   address owner;
-  mapping (address => address[]) [] files;
+  mapping (address => address[]) files;
   
   modifier isOwner(bytes32 name)
   {
@@ -14,7 +14,6 @@ contract FileswarmManager {
   
   function upload(uint TTL) returns (bool res) {
     address f = new File(msg.sender, msg.value);
-    address[] temp = files[msg.sender];
     files[msg.sender].push(f);
     return true;
   }
