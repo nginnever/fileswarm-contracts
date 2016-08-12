@@ -68,6 +68,7 @@ contract File {
   struct IPFS {
     uint chunkNum;
     address seeder;
+    uint challengeNum;
   }
   
   struct Chunk {
@@ -75,7 +76,10 @@ contract File {
     string hash2;
     string challenge1;
     string challenge2;
-    uint cNum;
+    uint roundNum;
+    uint roundChallengeNum;
+    address rewardQue;
+    mapping (address => bool) roundChallengers;
   }
   
   mapping (uint => Chunk) public chunks;
@@ -87,9 +91,10 @@ contract File {
     _
   }
   
-  modifier isChallengeable(address challenger)
+  modifier isChallengeable(address challenger, uint _cNum)
   {
     if (seeders[challenger].seeder == 0x0) throw;
+    if (chunks[_cNum].roundNum == seeders[challenger].challengeNum) throw;
     _
   }
   
@@ -151,15 +156,41 @@ contract File {
     seeders[s].chunkNum = 0;
   }
   
-  function challenge(string _hash1, string _hash2) isChallengeable(msg.sender){
-    IPFS s = seeders[msg.sender];
-    if(validate()) {
+  function challenge(uint _chunkNum, string _hash1, string _hash2) isChallengeable(msg.sender, _chunkNum){
+    if(validate(_chunkNum, _hash1, _hash2 )) {
       confirmed.push(msg.sender);
+      seeders[msg.sender].challengeNum = chunks[_chunkNum].roundNum;
     }
   }
   
-  function validate() internal returns(bool) {
+  function validate(uint _chunkNum, string _hash1, string _hash2) internal returns(bool) {
+    if(chunks[_chunkNum].roundNum != challengeNum) {
+      chunks[_chunkNum].roundNum = challengeNum;
+    }
     
+    if(chunks[_chunkNum].roundChallengeNum == 0) {
+      chunks[_chunkNum].challenge1 = _hash1;
+      chunks[_chunkNum].challenge2 = _hash2;
+      chunks[_chunkNum].roundChallengeNum++;
+      chunks[_chunkNum].rewardQue = msg.sender;
+      seeders[msg.sender].challengeNum = chunks[_chunkNum].roundNum;
+      return false;
+    }
+    
+    if(chunks[_chunkNum].roundChallengeNum == 1) {
+      if(stringsEqual(chunks[_chunkNum].challenge1, _hash1)) {
+        chunks[_chunkNum].roundChallengeNum = 2;
+        confirmed.push(chunks[_chunkNum].rewardQue);
+        return true;
+      }
+    }
+    
+    if(chunks[_chunkNum].roundChallengeNum == 2) {
+      if(stringsEqual(chunks[_chunkNum].challenge1, _hash1)) {
+        confirmed.push(chunks[_chunkNum].rewardQue);
+        return true;
+      }  
+    }
   }
   
   function pay() {
