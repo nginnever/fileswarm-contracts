@@ -35,9 +35,10 @@ contract FileswarmManager {
   
   function seed(address ifile, string _hash1, string _hash2) isSeeding(ifile) returns(bool res) {
     IPFS entry = seeders[msg.sender];
+    // this hash logs all of the chunks a seeder is seeding for client side ops
     entry.hash1 = _hash1;
     entry.hash2 = _hash2;
-    File(ifile).addSeeder(msg.sender, _hash1, _hash2);
+    File(ifile).addSeeder(msg.sender);
     return true;
   }
   
@@ -61,14 +62,11 @@ contract File {
   uint public challengeNum;
   uint public numChunks;
   bool public setTime;
-  string public challengeHash1;
-  string public challengeHash2;
   address[] public confirmed;
   uint amt = 14;
   
   struct IPFS {
-    string hash1;
-    string hash2;
+    uint chunkNum;
     address seeder;
   }
   
@@ -77,6 +75,7 @@ contract File {
     string hash2;
     string challenge1;
     string challenge2;
+    uint cNum;
   }
   
   mapping (uint => Chunk) public chunks;
@@ -142,16 +141,14 @@ contract File {
     pay();
   }
   
-  function addSeeder(address s, string _hash1, string _hash2) {
+  function addSeeder(address s) {
     seeders[s].seeder = s;
-    seeders[s].hash2 = _hash1;
-    seeders[s].hash2 = _hash1;
+    seeders[s].chunkNum = blockNum % numChunks;
   }
   
   function removeSeeder(address s) {
     seeders[s].seeder = 0x0;
-    seeders[s].hash1 = "";
-    seeders[s].hash2 = "";
+    seeders[s].chunkNum = 0;
   }
   
   function challenge(string _hash1, string _hash2) isChallengeable(msg.sender){
