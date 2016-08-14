@@ -61,8 +61,8 @@ contract File {
   uint public time;
   uint public challengeNum;
   uint public numChunks;
-  bool public setTime;
-  address[] public confirmed;
+  uint public confirmedCount;
+  mapping (uint => address) public confirmed;
   uint amt = 14;
   
   struct IPFS {
@@ -77,9 +77,8 @@ contract File {
     string challenge1;
     string challenge2;
     uint roundNum;
-    uint roundChallengeNum;
+    uint challenges;
     address rewardQue;
-    mapping (address => bool) roundChallengers;
   }
   
   mapping (uint => Chunk) public chunks;
@@ -94,7 +93,7 @@ contract File {
   modifier isChallengeable(address challenger, uint _cNum)
   {
     if (seeders[challenger].seeder == 0x0) throw;
-    if (chunks[_cNum].roundNum == seeders[challenger].challengeNum) throw;
+    if (chunks[_cNum].roundNum == seeders[challenger].challengeNum && challengeNum == chunks[_cNum].roundNum) throw;
     _
   }
   
@@ -102,9 +101,8 @@ contract File {
     owner = _owner;
     balance = _balance;
     blockNum = block.number;
-    setTime = true;
     time = now;
-    challengeNum = 0;
+    challengeNum = 1;
   }
   
   function setNumChunks(uint num) {
@@ -115,6 +113,7 @@ contract File {
     Chunk memory entry;
     entry.hash1 = _hash1;
     entry.hash2 = _hash2;
+    entry.roundNum = 1;
     chunks[index] = entry;
   }
   
@@ -124,16 +123,6 @@ contract File {
   //  IPFS chunk = chunks[i];
   //  return chunk;
   //}
-  
-  function getChunk(uint i) public returns (string _hash1, string _hash2) {
-    Chunk temp = chunks[i];
-    _hash1 = temp.hash1;
-    _hash2 = temp.hash2;
-  }
-  
-  function getConfirmedCount() public constant returns(uint) {
-    return confirmed.length;
-  }
   
   function getSeederAddr(address a) public constant returns(address) {
     return seeders[a].seeder;
@@ -147,18 +136,22 @@ contract File {
   }
   
   function addSeeder(address s) {
+    if(seeders[s].seeder != 0x0) throw;
     seeders[s].seeder = s;
     seeders[s].chunkNum = blockNum % numChunks;
+    //seeders[s].challengeNum = 0;
   }
   
   function removeSeeder(address s) {
     seeders[s].seeder = 0x0;
     seeders[s].chunkNum = 0;
+    seeders[s].challengeNum = 0;
   }
   
   function challenge(uint _chunkNum, string _hash1, string _hash2) isChallengeable(msg.sender, _chunkNum){
     if(validate(_chunkNum, _hash1, _hash2 )) {
-      confirmed.push(msg.sender);
+      confirmed[confirmedCount + 1] = msg.sender;
+      confirmedCount = confirmedCount++;
       seeders[msg.sender].challengeNum = chunks[_chunkNum].roundNum;
     }
   }
@@ -166,41 +159,46 @@ contract File {
   function validate(uint _chunkNum, string _hash1, string _hash2) internal returns(bool) {
     if(chunks[_chunkNum].roundNum != challengeNum) {
       chunks[_chunkNum].roundNum = challengeNum;
+      chunks[_chunkNum].challenges = 0;
     }
     
-    if(chunks[_chunkNum].roundChallengeNum == 0) {
+    if(chunks[_chunkNum].challenges == 0) {
       chunks[_chunkNum].challenge1 = _hash1;
       chunks[_chunkNum].challenge2 = _hash2;
-      chunks[_chunkNum].roundChallengeNum++;
+      chunks[_chunkNum].challenges++;
       chunks[_chunkNum].rewardQue = msg.sender;
       seeders[msg.sender].challengeNum = chunks[_chunkNum].roundNum;
       return false;
     }
     
-    if(chunks[_chunkNum].roundChallengeNum == 1) {
+    // TODO what happens if first challenge is incorrect
+    if(chunks[_chunkNum].challenges == 1) {
       if(stringsEqual(chunks[_chunkNum].challenge1, _hash1)) {
-        chunks[_chunkNum].roundChallengeNum = 2;
-        confirmed.push(chunks[_chunkNum].rewardQue);
+        chunks[_chunkNum].challenges++;
+        confirmed[confirmedCount + 1] = chunks[_chunkNum].rewardQue;
+        confirmedCount = confirmedCount++;
+        seeders[msg.sender].challengeNum = chunks[_chunkNum].roundNum;
         return true;
       }
+      return false;
     }
     
-    if(chunks[_chunkNum].roundChallengeNum == 2) {
+    if(chunks[_chunkNum].challenges == 2) {
       if(stringsEqual(chunks[_chunkNum].challenge1, _hash1)) {
-        confirmed.push(chunks[_chunkNum].rewardQue);
+        seeders[msg.sender].challengeNum = chunks[_chunkNum].roundNum;
         return true;
       }  
     }
   }
   
   function pay() {
-    for(uint i = 0; i < confirmed.length; i++) {
-      test++;
+    // TODO fix payments  
+    for(uint i = 0; i < confirmedCount; ++i) {
       balance - amt;
-      bool tests = confirmed[i].send(amt);
+      confirmed[i].send(amt);
       delete confirmed[i];
     }
-    confirmed.length = 0;
+    confirmedCount = 0;
   }
   
   function stringsEqual(string storage _a, string memory _b) internal returns (bool) {
