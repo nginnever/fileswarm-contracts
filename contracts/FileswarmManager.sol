@@ -174,6 +174,8 @@ contract File {
     }
     
     // TODO what happens if first challenge is incorrect
+    // TODO what happens if someone reads this value then responds
+    // without actually computing the hash from stored data
     if(chunks[_chunkNum].challenges == 1) {
       if(stringsEqual(chunks[_chunkNum].challenge1, _hash1)) {
         chunks[_chunkNum].challenges++;
