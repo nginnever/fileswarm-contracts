@@ -59,7 +59,7 @@ contract File {
   uint public balance;
   uint public blockNum;
   uint public time;
-  uint public challengeNum;
+  uint public round;
   uint public numChunks;
   uint public confirmedCount;
   mapping (uint => address) public confirmed;
@@ -78,6 +78,7 @@ contract File {
     string challenge2;
     uint roundNum;
     uint challenges;
+    uint seedersNum;
     address rewardQue;
   }
   
@@ -93,7 +94,8 @@ contract File {
   modifier isChallengeable(address challenger, uint _cNum)
   {
     if (seeders[challenger].seeder == 0x0) throw;
-    if (chunks[_cNum].roundNum == seeders[challenger].challengeNum && challengeNum == chunks[_cNum].roundNum) throw;
+    if (seeders[challenger].chunkNum != _cNum) throw;
+    if (chunks[_cNum].roundNum == seeders[challenger].challengeNum && round == chunks[_cNum].roundNum) throw;
     _
   }
   
@@ -102,7 +104,7 @@ contract File {
     balance = _balance;
     blockNum = block.number;
     time = now;
-    challengeNum = 1;
+    round = 1;
   }
   
   function setNumChunks(uint num) {
@@ -128,17 +130,21 @@ contract File {
     return seeders[a].seeder;
   }
   
-  function setNewChallenge() isTime() {
+  function setNewChallenge() isTime() public {
     time = now;
     blockNum = block.number;
-    challengeNum++;
+    round++;
     pay();
   }
   
   function addSeeder(address s) {
+    // Throw if the sender is already seeding a chunk of this file
     if(seeders[s].seeder != 0x0) throw;
+    // Throw if the chunk has more than 4 seeders already
+    if(chunks[blockNum % numChunks].seedersNum > 4) throw;
     seeders[s].seeder = s;
     seeders[s].chunkNum = blockNum % numChunks;
+    chunks[seeders[s].chunkNum].seedersNum++;
     //seeders[s].challengeNum = 0;
   }
   
@@ -149,16 +155,12 @@ contract File {
   }
   
   function challenge(uint _chunkNum, string _hash1, string _hash2) isChallengeable(msg.sender, _chunkNum){
-    if(validate(_chunkNum, _hash1, _hash2 )) {
-      confirmed[confirmedCount + 1] = msg.sender;
-      confirmedCount = confirmedCount++;
-      seeders[msg.sender].challengeNum = chunks[_chunkNum].roundNum;
-    }
+    validate(_chunkNum, _hash1, _hash2 );
   }
   
-  function validate(uint _chunkNum, string _hash1, string _hash2) internal returns(bool) {
-    if(chunks[_chunkNum].roundNum != challengeNum) {
-      chunks[_chunkNum].roundNum = challengeNum;
+  function validate(uint _chunkNum, string _hash1, string _hash2) internal {
+    if(chunks[_chunkNum].roundNum != round) {
+      chunks[_chunkNum].roundNum = round;
       chunks[_chunkNum].challenges = 0;
     }
     
@@ -168,7 +170,7 @@ contract File {
       chunks[_chunkNum].challenges++;
       chunks[_chunkNum].rewardQue = msg.sender;
       seeders[msg.sender].challengeNum = chunks[_chunkNum].roundNum;
-      return false;
+      return;
     }
     
     // TODO what happens if first challenge is incorrect
@@ -176,40 +178,44 @@ contract File {
       if(stringsEqual(chunks[_chunkNum].challenge1, _hash1)) {
         chunks[_chunkNum].challenges++;
         confirmed[confirmedCount + 1] = chunks[_chunkNum].rewardQue;
-        confirmedCount = confirmedCount++;
+        confirmed[confirmedCount + 2] = msg.sender;
+        confirmedCount = confirmedCount + 2;
+        chunks[_chunkNum].rewardQue = 0x0;
         seeders[msg.sender].challengeNum = chunks[_chunkNum].roundNum;
-        return true;
       }
-      return false;
+      return;
     }
     
     if(chunks[_chunkNum].challenges == 2) {
       if(stringsEqual(chunks[_chunkNum].challenge1, _hash1)) {
+        chunks[_chunkNum].challenges++;
+        confirmed[confirmedCount + 1] = msg.sender;
+        confirmedCount = confirmedCount + 1;
         seeders[msg.sender].challengeNum = chunks[_chunkNum].roundNum;
-        return true;
-      }  
+      }
+      return;
     }
   }
   
-  function pay() {
+  function pay() internal{
     // TODO fix payments  
-    for(uint i = 0; i < confirmedCount; ++i) {
-      balance - amt;
-      confirmed[i].send(amt);
+    for(uint i = 0; i < confirmedCount + 1; i++) {
+      balance = balance - amt;
+      if(i != 0) confirmed[i].send(amt);
       delete confirmed[i];
     }
     confirmedCount = 0;
   }
   
   function stringsEqual(string storage _a, string memory _b) internal returns (bool) {
-	bytes storage a = bytes(_a);
-	bytes memory b = bytes(_b);
-	if (a.length != b.length)
-	  return false;
-	// @todo unroll this loop
-	for (uint i = 0; i < a.length; i ++)
-		if (a[i] != b[i])
-			return false;
-	return true;
+  bytes storage a = bytes(_a);
+  bytes memory b = bytes(_b);
+  if (a.length != b.length)
+    return false;
+  // @todo unroll this loop
+  for (uint i = 0; i < a.length; i ++)
+    if (a[i] != b[i])
+      return false;
+  return true;
   }
 }
