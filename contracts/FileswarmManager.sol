@@ -62,6 +62,9 @@ contract File {
   uint public round;
   uint public numChunks;
   uint public confirmedCount;
+  // TODO kick seeders off a chunk after missing x rounds
+  uint public allowedMissedRounds;
+  
   mapping (uint => address) public confirmed;
   uint amt = 14;
   
@@ -202,8 +205,9 @@ contract File {
   function pay() internal{
     // TODO fix payments  
     for(uint i = 0; i < confirmedCount + 1; i++) {
+      // BUG this will deduct 1 too many times
       balance = balance - amt;
-      if(i != 0) confirmed[i].send(amt);
+      confirmed[i].send(amt);
       delete confirmed[i];
     }
     confirmedCount = 0;
