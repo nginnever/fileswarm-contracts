@@ -4,12 +4,11 @@ contract FileswarmManager {
   address[] public files;
 
   struct Files {
-    bytes hash;
+     bytes32 hash;
   }
   
   struct Seed {
-    string hash1;
-    string hash2;
+    bytes32 hash;
   }
   
   mapping (address => Seed) public seeders;
@@ -25,7 +24,7 @@ contract FileswarmManager {
     owner = msg.sender;
   }
   
-  function createFile(bytes _hash) returns(bool res) {
+  function createFile(bytes32 _hash) returns(bool res) {
     address f = new File(msg.sender, msg.value, _hash);
     Files newFile = userFiles[msg.sender];
     newFile.hash = _hash;
@@ -34,11 +33,10 @@ contract FileswarmManager {
     return true;
   }
   
-  function seed(address ifile, string _hash1, string _hash2) isSeeding(ifile) returns(bool res) {
+  function seed(address ifile, bytes32 _hash) isSeeding(ifile) returns(bool res) {
     Seed entry = seeders[msg.sender];
     // this hash logs all of the chunks a seeder is seeding for client side ops
-    entry.hash1 = _hash1;
-    entry.hash2 = _hash2;
+    entry.hash = _hash;
     File(ifile).addSeeder(msg.sender);
     return true;
   }
@@ -64,16 +62,17 @@ contract File {
   bytes32 public sha;
   
   address[] public rewarded;
-  uint amt = 14;
+  uint amt = 1500000000000000000;
   
   struct Seeder {
     uint amountRewarded;
     address seeder;
     uint challengeNum;
-    bool rewarded;
   }
   
-  bytes fileHash;
+  Seeder public temp;
+  
+  bytes32 fileHash;
   bytes32[] public chunks;
   bytes32 public challengeHash;
   //mapping (uint => Chunk) public chunks;
@@ -87,11 +86,11 @@ contract File {
   
   modifier isChallengeable(address challenger)
   {
-     if (seeders[challenger].seeder != challenger || seeders[challenger].challengeNum < round) throw;
+     if (seeders[challenger].seeder != challenger || seeders[challenger].challengeNum >= round) throw;
     _
   }
   
-  function File(address _owner, uint _balance, bytes _hash) {
+  function File(address _owner, uint _balance, bytes32 _hash) {
     owner = _owner;
     balance = _balance;
     blockNum = block.number;
@@ -134,22 +133,22 @@ contract File {
     // Throw if the file has more than 4 seeders already
     if(numSeeders > 4) throw;
     seeders[s].seeder = s;
-    seeders[s].rewarded = false;
     seeders[s].amountRewarded = 0;
     seeders[s].challengeNum = 0;
   }
   
-  function challenge(string chunk) isChallengeable(msg.sender){
+  function challenge(bytes chunk) isChallengeable(msg.sender){
     if(IPFSvalidate(chunk)) {
       msg.sender.send(amt);
       balance = balance - amt;
       rewarded.push(msg.sender);
       confirmedCount++;
-      seeders[msg.sender].challengeNum == round;
+      seeders[msg.sender].challengeNum = round;
+      seeders[msg.sender].amountRewarded += amt;
     }
   }
   
-  function IPFSvalidate(string chunk) internal returns(bool) {
+  function IPFSvalidate(bytes chunk) internal returns(bool) {
     bytes memory content = bytes(chunk);
     bytes memory len = to_binary(content.length);
     // 6 + content byte length

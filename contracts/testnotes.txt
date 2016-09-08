@@ -49,11 +49,11 @@ Contract mined! address: 0x65dfec1510d9ea1a306f6aefe114a2bc0a8113b1
 
 manager = fileswarmmanagerContract.at('0x4f14aa4d184af76252e75f2eaa965edfca32c2ad')
 
-manager.createFile({from: web3.eth.accounts[0], value: web3.toWei(4.20, "ether"), gas: 3000000})
+manager.createFile('0x86a14a7ddf9b25ecfa175fe6632726025d7db76d5917dcf9d3e25fb290dab9ea', {from: web3.eth.accounts[0], value: web3.toWei(4.20, "ether"), gas: 3000000})
 
 manager.seed('0x4174af2a8c9d467335b538e82758e4b2931cc25d', 'QmSGXf6KXUZFUspCArTnLeY', 'Wm8dRK8cYiahcD8rLcbeY6b', {from: web3.eth.accounts[0], gas: 1000000})
 
-file.challenge(2, 'QmTestChallenge1', 'QmTestChallenge2', {from: web3.eth.accounts[0], gas: 3000000})
+file.challenge('0x89504e470d0a1a0a0000000d49484452000003e8000002580803000000c6c03c1700000300504c544500000300010b00011200021e00021863d3d700042400062cffffff000528000834000630000a3d499da1000939010c42010b40010f49010d4501155c011253010e4701104e010f4b01166001115101', {from: web3.eth.accounts[0], gas: 3000000})
 
 file.setNewChallenge({from: web3.eth.accounts[0], gas: 3000000})
 
@@ -61,9 +61,14 @@ personal.unlockAccount(web3.eth.accounts[2], "bushido420")
 
 bal = web3.fromWei(web3.eth.getBalance(web3.eth.accounts[1]))
 
-file.addChunk(0, 'QmSGXf6KXUZFUspCArTnLeY', 'Wm8dRK8cYiahcD8rLcbeY6b', {from: web3.eth.accounts[0], gas: 1000000})
+file.addChunk('0x86a14a7ddf9b25ecfa175fe6632726025d7db76d5917dcf9d3e25fb290dab9ea', {from: web3.eth.accounts[0], gas: 3000000})
 
-file.setNumChunks(5, {from: web3.eth.accounts[0], gas: 1000000})
+file.setNumChunks(4, {from: web3.eth.accounts[0], gas: 1000000})
+
+file.addSeeder(web3.eth.accounts[0], {from: web3.eth.accounts[0], gas:3000000})
 
 [1] = 499.78443046
 [2] = 499.99812364
+
+// GETH FLAGS
+geth --genesis /root/.ethereum/gen.json --rpc --rpcaddr "149.56.133.176" --rpcport 8545 --rpccorsdomain "*" --rpcapi="db,eth,net,web3,personal,web3" --datadir "/root/.ethereum/TestChain1" --networkid 1337 --unlock
