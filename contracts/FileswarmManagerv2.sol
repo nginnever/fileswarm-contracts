@@ -2,9 +2,12 @@ contract FileswarmManager {
   address public owner;
   uint public filecount;
   address[] public files;
+  uint public inBal;
 
   struct Files {
      bytes32 hash;
+     address owner;
+     address lastFile;
   }
   
   struct Seed {
@@ -17,20 +20,28 @@ contract FileswarmManager {
   modifier isSeeding(address x)
   {
     if(File(x).getSeederAddr(msg.sender) != 0x0) throw;
-    _
+    _;
+  }
+  
+  modifier isOwner(address x)
+  {
+    if(userFiles[x].owner != 0x0 && userFiles[x].owner != x) throw;
+    _;
   }
 
   function FileswarmManager() {
     owner = msg.sender;
   }
   
-  function createFile(bytes32 _hash) returns(bool res) {
+  function createFile(bytes32 _hash) payable{
+    inBal = msg.value;
     address f = new File(msg.sender, msg.value, _hash);
     Files newFile = userFiles[msg.sender];
     newFile.hash = _hash;
+    newFile.lastFile = f;
+    if (newFile.owner == 0x0) newFile.owner = msg.sender;
     filecount++;
     files.push(f);
-    return true;
   }
   
   function seed(address ifile, bytes32 _hash) isSeeding(ifile) returns(bool res) {
@@ -54,6 +65,7 @@ contract File {
   uint public numSeeders;
   // TODO kick seeders off a chunk after missing x rounds
   uint public allowedMissedRounds;
+  bool public test;
   
   // IPFS protobuf encodings
   bytes merkledagprefix = hex"0a";
@@ -62,7 +74,7 @@ contract File {
   bytes32 public sha;
   
   address[] public rewarded;
-  uint amt = 1500000000000000000;
+  uint amt = 1500000000000;
   
   struct Seeder {
     uint amountRewarded;
@@ -72,7 +84,7 @@ contract File {
   
   Seeder public temp;
   
-  bytes32 fileHash;
+  bytes32 public fileHash;
   bytes32[] public chunks;
   bytes32 public challengeHash;
   //mapping (uint => Chunk) public chunks;
@@ -81,13 +93,13 @@ contract File {
   modifier isTime()
   {
     if (now < time + 1 minutes) throw;
-    _
+    _;
   }
   
   modifier isChallengeable(address challenger)
   {
      if (seeders[challenger].seeder != challenger || seeders[challenger].challengeNum >= round) throw;
-    _
+    _;
   }
   
   function File(address _owner, uint _balance, bytes32 _hash) {
@@ -139,7 +151,7 @@ contract File {
   
   function challenge(bytes chunk) isChallengeable(msg.sender){
     if(IPFSvalidate(chunk)) {
-      msg.sender.send(amt);
+      test = msg.sender.send(amt);
       balance = balance - amt;
       rewarded.push(msg.sender);
       confirmedCount++;
