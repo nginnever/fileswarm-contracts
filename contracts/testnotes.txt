@@ -49,7 +49,7 @@ Contract mined! address: 0x65dfec1510d9ea1a306f6aefe114a2bc0a8113b1
 
 manager = fileswarmmanagerContract.at('0x4f14aa4d184af76252e75f2eaa965edfca32c2ad')
 
-manager.createFile('0x86a14a7ddf9b25ecfa175fe6632726025d7db76d5917dcf9d3e25fb290dab9ea', {from: web3.eth.accounts[0], value: web3.toWei(40.20, "ether"), gas: 3000000})
+fileswarmmanager.createFile('0xf5102f201597f848c558a78af67daaef3f65a148b9c05004b30932764c91782b', '0x86a14a7ddf9b25ecfa175fe6632726025d7db76d5917dcf9d3e25fb290dab9ea', {from: web3.eth.accounts[0], value: web3.toWei(4.20, "ether"), gas: 3000000})
 
 manager.seed('0xfa6de586fd65fd05f05d4a458999cf4481709d80', 'QmSGXf6KXUZFUspCArTnLeY', 'Wm8dRK8cYiahcD8rLcbeY6b', {from: web3.eth.accounts[0], gas: 1000000})
 
@@ -72,4 +72,4 @@ file.addSeeder(web3.eth.accounts[1], {from: web3.eth.accounts[0], gas:3000000})
 [2] = 491000000000000000000
 
 // GETH FLAGS
-geth --genesis /root/.ethereum/gen.json --rpc --rpcaddr "149.56.133.176" --rpcport 8545 --rpccorsdomain "*" --rpcapi="db,eth,net,web3,personal,web3,debug" --datadir "/root/.ethereum/TestChain1" --networkid 1337 --unlock
+geth --genesis /root/.ethereum/gen.json --rpc --rpcaddr "149.56.133.176" --rpcport 8545 --rpccorsdomain "*" --rpcapi="db,eth,net,web3,personal,web3,debug" --datadir "/root/.ethereum/TestChain1" --networkid 1337

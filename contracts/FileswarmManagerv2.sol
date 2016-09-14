@@ -2,7 +2,6 @@ contract FileswarmManager {
   address public owner;
   uint public filecount;
   address[] public files;
-  uint public inBal;
 
   struct Files {
      bytes32 hash;
@@ -33,11 +32,12 @@ contract FileswarmManager {
     owner = msg.sender;
   }
   
-  function createFile(bytes32 _hash) payable{
-    inBal = msg.value;
-    address f = new File(msg.sender, msg.value, _hash);
+  // init new file contracts with the hash of the file, the address of the file 
+  // is stored in userFiles lastFile and in the ipfs hash stored in the hash field
+  function createFile(bytes32 _uhash, bytes32 _fhash) isOwner(msg.sender) payable{
+    address f = new File(msg.sender, msg.value, _fhash);
     Files newFile = userFiles[msg.sender];
-    newFile.hash = _hash;
+    newFile.hash = _uhash;
     newFile.lastFile = f;
     if (newFile.owner == 0x0) newFile.owner = msg.sender;
     filecount++;
@@ -51,30 +51,35 @@ contract FileswarmManager {
     File(ifile).addSeeder(msg.sender);
     return true;
   }
+  
+  function getUser(address u) public constant returns(bytes32 hash, address owner, address lastfile) {
+    Files temp = userFiles[u];
+    return (temp.hash, temp.owner, temp.lastFile);
+  }
 }
 
 contract File {
-  address public owner;
+  address owner;
   uint public balance;
-  uint public blockNum;
-  uint public time;
-  uint public rand;
+  uint blockNum;
+  uint time;
+  uint rand;
   uint public round;
-  uint public numChunks;
-  uint public confirmedCount;
   uint public numSeeders;
   // TODO kick seeders off a chunk after missing x rounds
   uint public allowedMissedRounds;
   bool public test;
+  bytes32 public fileHash;
+  bytes32[] public chunks;
+  bytes32 public challengeHash;
+  uint amt = 150;
   
   // IPFS protobuf encodings
   bytes merkledagprefix = hex"0a";
   bytes unixfsprefix = hex"080212";
   bytes postfix = hex"18";
-  bytes32 public sha;
+  bytes32 sha;
   
-  address[] public rewarded;
-  uint amt = 1500000000000;
   
   struct Seeder {
     uint amountRewarded;
@@ -82,11 +87,6 @@ contract File {
     uint challengeNum;
   }
   
-  Seeder public temp;
-  
-  bytes32 public fileHash;
-  bytes32[] public chunks;
-  bytes32 public challengeHash;
   //mapping (uint => Chunk) public chunks;
   mapping (address => Seeder) public seeders;
   
@@ -102,17 +102,13 @@ contract File {
     _;
   }
   
-  function File(address _owner, uint _balance, bytes32 _hash) {
-    owner = _owner;
-    balance = _balance;
+  function File(address o, uint b, bytes32 h) {
+    owner = o;
+    balance = b;
     blockNum = block.number;
     time = now;
     round = 1;
-    fileHash = _hash;
-  }
-  
-  function setNumChunks(uint num) {
-    numChunks = num;
+    fileHash = h;
   }
   
   function addChunk(bytes32 _hash) {
@@ -136,7 +132,6 @@ contract File {
     round++;
     rand = blockNum % chunks.length;
     challengeHash = chunks[rand];
-    confirmedCount = 0;
   }
   
   function addSeeder(address s) {
@@ -149,12 +144,10 @@ contract File {
     seeders[s].challengeNum = 0;
   }
   
-  function challenge(bytes chunk) isChallengeable(msg.sender){
+  function challenge(bytes chunk) isChallengeable(msg.sender) payable{
     if(IPFSvalidate(chunk)) {
       test = msg.sender.send(amt);
       balance = balance - amt;
-      rewarded.push(msg.sender);
-      confirmedCount++;
       seeders[msg.sender].challengeNum = round;
       seeders[msg.sender].amountRewarded += amt;
     }
