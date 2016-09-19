@@ -49,7 +49,11 @@ Contract mined! address: 0x65dfec1510d9ea1a306f6aefe114a2bc0a8113b1
 
 manager = fileswarmmanagerContract.at('0x4f14aa4d184af76252e75f2eaa965edfca32c2ad')
 
-fileswarmmanager.createFile('0xf5102f201597f848c558a78af67daaef3f65a148b9c05004b30932764c91782b', '0x86a14a7ddf9b25ecfa175fe6632726025d7db76d5917dcf9d3e25fb290dab9ea', {from: web3.eth.accounts[0], value: web3.toWei(4.20, "ether"), gas: 3000000})
+fileswarmmanager.createFile('0x68b463010388290f5a449fc33d1f0480592aaea61b0089676269e548e970ec04', '0x1221532a427d91d6aeca72cfb581359226f5dc2659f9b884b44fd1f8f6c2f5d9', {from: web3.eth.accounts[0], value: web3.toWei(4.20, "ether"), gas: 3000000})
+
+fileswarmmanager.createFile('0x92d69706f5f32675ddacd5ddb24bc06fb054344dfbf223a818bcdcd46fb86154', 420000, {from: web3.eth.accounts[0], value: 23, gas:3000000})
+
+0xb0b19072000000000000000000000000d761c357110b37e33f20db35900cf7f1e579571f
 
 manager.seed('0xfa6de586fd65fd05f05d4a458999cf4481709d80', 'QmSGXf6KXUZFUspCArTnLeY', 'Wm8dRK8cYiahcD8rLcbeY6b', {from: web3.eth.accounts[0], gas: 1000000})
 
@@ -61,7 +65,7 @@ personal.unlockAccount(web3.eth.accounts[1], "bushido420")
 
 bal = web3.fromWei(web3.eth.getBalance(web3.eth.accounts[1]))
 
-file.addChunk('0x86a14a7ddf9b25ecfa175fe6632726025d7db76d5917dcf9d3e25fb290dab9ea', {from: web3.eth.accounts[0], gas: 3000000})
+file.addChunk('0x89a0e1f2d1cd8b8ad97a48d3c2327313750a0ef20b1cad59f66a191e9be93230', {from: web3.eth.accounts[0], gas: 3000000})
 
 file.setNumChunks(4, {from: web3.eth.accounts[0], gas: 1000000})
 
@@ -71,5 +75,8 @@ file.addSeeder(web3.eth.accounts[1], {from: web3.eth.accounts[0], gas:3000000})
       499 639981481630540841
 [2] = 491000000000000000000
 
-// GETH FLAGS
+// mac settings
+geth --rpc --rpcaddr "192.168.0.28" --rpcport 8545 --rpccorsdomain "*" --rpcapi="db,eth,net,web3,personal,web3,debug" --datadir "/Users/voxelot/Library/Ethereum/TestChain1" --networkid 1337 --unlock "0xd761c357110b37e33f20db35900cf7f1e579571f" console
+
+// GETH FLAGS server
 geth --genesis /root/.ethereum/gen.json --rpc --rpcaddr "149.56.133.176" --rpcport 8545 --rpccorsdomain "*" --rpcapi="db,eth,net,web3,personal,web3,debug" --datadir "/root/.ethereum/TestChain1" --networkid 1337
